@@ -15,7 +15,7 @@
  * along with this program.  If not, see <https://www.gnu.org/licenses/>.
  */
 
-package com.velocitypowered.proxy.connection.forge.legacy;
+package com.velocitypowered.proxy.connection.forge.modern;
 
 import com.velocitypowered.proxy.connection.ConnectionTypes;
 import com.velocitypowered.proxy.connection.MinecraftConnection;
@@ -23,33 +23,32 @@ import com.velocitypowered.proxy.connection.backend.BackendConnectionPhase;
 import com.velocitypowered.proxy.connection.backend.BackendConnectionPhases;
 import com.velocitypowered.proxy.connection.backend.VelocityServerConnection;
 import com.velocitypowered.proxy.connection.client.ConnectedPlayer;
-import com.velocitypowered.proxy.protocol.packet.PluginMessage;
-import javax.annotation.Nullable;
+import com.velocitypowered.proxy.protocol.packet.LoginPluginMessage;
 
 /**
- * Allows for simple tracking of the phase that the Legacy
+ * Allows for simple tracking of the phase that the Modern
  * Forge handshake is in (server side).
  */
-public enum LegacyForgeHandshakeBackendPhase implements BackendConnectionPhase {
+public enum ModernForgeHandshakeBackendPhase implements BackendConnectionPhase {
 
   /**
    * Indicates that the handshake has not started, used for {@link BackendConnectionPhases#UNKNOWN}.
    */
-  NOT_STARTED(LegacyForgeConstants.SERVER_HELLO_DISCRIMINATOR) {
+  NOT_STARTED {
     @Override
-    LegacyForgeHandshakeBackendPhase nextPhase() {
-      return HELLO;
+    ModernForgeHandshakeBackendPhase nextPhase() {
+      return IN_PROGRESS;
     }
   },
 
   /**
-   * Sent a hello to the client, waiting for a hello back before sending
-   * the mod list.
+   * Indicates that the handshake is in progress.
    */
-  HELLO(LegacyForgeConstants.MOD_LIST_DISCRIMINATOR) {
+  IN_PROGRESS {
     @Override
-    LegacyForgeHandshakeBackendPhase nextPhase() {
-      return SENT_MOD_LIST;
+    public void onLoginSuccess(VelocityServerConnection serverConnection, ConnectedPlayer player) {
+      serverConnection.setConnectionPhase(ModernForgeHandshakeBackendPhase.COMPLETE);
+      player.setPhase(ModernForgeHandshakeClientPhase.COMPLETE);
     }
 
     @Override
@@ -58,76 +57,35 @@ public enum LegacyForgeHandshakeBackendPhase implements BackendConnectionPhase {
       // we haven't done so already.
       MinecraftConnection mc = connection.getConnection();
       if (mc != null) {
-        mc.setType(ConnectionTypes.LEGACY_FORGE);
+        mc.setType(ConnectionTypes.MODERN_FORGE);
       }
       connection.getPlayer().sendForgeHandshakeResetPacket();
     }
   },
 
   /**
-   * The mod list from the client has been accepted and a server mod list
-   * has been sent. Waiting for the client to acknowledge.
+   * Indicates that the handshake has been completed.
    */
-  SENT_MOD_LIST(LegacyForgeConstants.REGISTRY_DISCRIMINATOR) {
-    @Override
-    LegacyForgeHandshakeBackendPhase nextPhase() {
-      return SENT_SERVER_DATA;
-    }
-  },
-
-  /**
-   * The server data is being sent or has been sent, and is waiting for
-   * the client to acknowledge it has processed this.
-   */
-  SENT_SERVER_DATA(LegacyForgeConstants.ACK_DISCRIMINATOR) {
-    @Override
-    LegacyForgeHandshakeBackendPhase nextPhase() {
-      return WAITING_ACK;
-    }
-  },
-
-  /**
-   * Waiting for the client to acknowledge before completing handshake.
-   */
-  WAITING_ACK(LegacyForgeConstants.ACK_DISCRIMINATOR) {
-    @Override
-    LegacyForgeHandshakeBackendPhase nextPhase() {
-      return COMPLETE;
-    }
-  },
-
-  /**
-   * The server has completed the handshake and will continue after the client ACK.
-   */
-  COMPLETE(null) {
+  COMPLETE {
     @Override
     public boolean consideredComplete() {
       return true;
     }
   };
 
-  @Nullable private final Integer packetToAdvanceOn;
-
   /**
-   * Creates an instance of the {@link LegacyForgeHandshakeBackendPhase}.
-   *
-   * @param packetToAdvanceOn The ID of the packet discriminator that indicates
-   *                          that the server has moved onto a new phase, and
-   *                          as such, Velocity should do so too (inspecting
-   *                          {@link #nextPhase()}. A null indicates there is no
-   *                          further phase to transition to.
+   * Creates an instance of the {@link ModernForgeHandshakeBackendPhase}.
    */
-  LegacyForgeHandshakeBackendPhase(@Nullable Integer packetToAdvanceOn) {
-    this.packetToAdvanceOn = packetToAdvanceOn;
+  ModernForgeHandshakeBackendPhase() {
   }
 
   @Override
   public final boolean handle(VelocityServerConnection serverConnection,
-                              ConnectedPlayer player,
-                              PluginMessage message) {
-    if (message.getChannel().equals(LegacyForgeConstants.FORGE_LEGACY_HANDSHAKE_CHANNEL)) {
+                        ConnectedPlayer player,
+                        LoginPluginMessage message) {
+    if (message.getChannel().equals(ModernForgeConstants.LOGIN_WRAPPER_CHANNEL)) {
       // Get the phase and check if we need to start the next phase.
-      LegacyForgeHandshakeBackendPhase newPhase = getNewPhase(serverConnection, message);
+      ModernForgeHandshakeBackendPhase newPhase = getNewPhase(serverConnection, message);
 
       // Update phase on server
       serverConnection.setConnectionPhase(newPhase);
@@ -167,7 +125,7 @@ public enum LegacyForgeHandshakeBackendPhase implements BackendConnectionPhase {
    *
    * @return The next phase
    */
-  LegacyForgeHandshakeBackendPhase nextPhase() {
+  ModernForgeHandshakeBackendPhase nextPhase() {
     return this;
   }
 
@@ -178,15 +136,13 @@ public enum LegacyForgeHandshakeBackendPhase implements BackendConnectionPhase {
    * @param packet The packet
    * @return The phase to transition to, which may be the same as before.
    */
-  private LegacyForgeHandshakeBackendPhase getNewPhase(VelocityServerConnection serverConnection,
-                                                       PluginMessage packet) {
-    if (packetToAdvanceOn != null
-        && LegacyForgeUtil.getHandshakePacketDiscriminator(packet) == packetToAdvanceOn) {
-      LegacyForgeHandshakeBackendPhase phaseToTransitionTo = nextPhase();
+  private ModernForgeHandshakeBackendPhase getNewPhase(VelocityServerConnection serverConnection,
+                                                       LoginPluginMessage packet) {
+    ModernForgeHandshakeBackendPhase phaseToTransitionTo = nextPhase();
+    if (phaseToTransitionTo != this) {
       phaseToTransitionTo.onTransitionToNewPhase(serverConnection);
-      return phaseToTransitionTo;
     }
 
-    return this;
+    return phaseToTransitionTo;
   }
 }

@@ -38,7 +38,12 @@ import com.mojang.brigadier.arguments.LongArgumentType;
 import com.mojang.brigadier.arguments.StringArgumentType;
 import com.velocitypowered.api.network.ProtocolVersion;
 import com.velocitypowered.proxy.protocol.ProtocolUtils;
+import com.velocitypowered.proxy.protocol.packet.brigadier.forge.EnumArgumentProperty;
+import com.velocitypowered.proxy.protocol.packet.brigadier.forge.EnumArgumentPropertySerializer;
+import com.velocitypowered.proxy.protocol.packet.brigadier.forge.ModIdArgumentProperty;
 import io.netty.buffer.ByteBuf;
+import org.checkerframework.checker.nullness.qual.Nullable;
+
 import java.util.HashMap;
 import java.util.Map;
 
@@ -234,9 +239,21 @@ public class ArgumentPropertyRegistry {
 
     empty(id("minecraft:uuid", mapSet(MINECRAFT_1_19, 47))); // added in 1.16
 
-
     // Crossstitch support
     register(id("crossstitch:mod_argument", mapSet(MINECRAFT_1_19, -256)), ModArgumentProperty.class, MOD);
+
+    // Forge support
+    register(id("forge:enum", mapSet(MINECRAFT_1_19, -255)), EnumArgumentProperty.class, EnumArgumentPropertySerializer.ENUM);
+    register(id("forge:modid", mapSet(MINECRAFT_1_19, -254)), ModIdArgumentProperty.class,
+            new ArgumentPropertySerializer<>() {
+              @Override
+              public @Nullable ModIdArgumentProperty deserialize(ByteBuf buf, ProtocolVersion protocolVersion) {
+                return new ModIdArgumentProperty();
+              }
+
+              @Override
+              public void serialize(ModIdArgumentProperty object, ByteBuf buf, ProtocolVersion protocolVersion) {}
+            });
 
     empty(id("minecraft:nbt")); // No longer in 1.19+
   }
