@@ -126,20 +126,8 @@ public class AuthSessionHandler implements MinecraftSessionHandler {
       mcConnection.write(new SetCompression(threshold));
       mcConnection.setCompressionThreshold(threshold);
     }
-    VelocityConfiguration configuration = server.getConfiguration();
-    UUID playerUniqueId = player.getUniqueId();
-    if (configuration.getPlayerInfoForwardingMode() == PlayerInfoForwarding.NONE) {
-      playerUniqueId = UuidUtils.generateOfflinePlayerUuid(player.getUsername());
-    }
-    ServerLoginSuccess success = new ServerLoginSuccess();
-    success.setUsername(player.getUsername());
-    success.setProperties(player.getGameProfileProperties());
-    success.setUuid(playerUniqueId);
-    mcConnection.write(success);
 
     mcConnection.setAssociation(player);
-    mcConnection.setState(StateRegistry.PLAY);
-
     server.getEventManager().fire(new LoginEvent(player))
         .thenAcceptAsync(event -> {
           if (mcConnection.isClosed()) {
@@ -159,7 +147,7 @@ public class AuthSessionHandler implements MinecraftSessionHandler {
               return;
             }
 
-            mcConnection.setSessionHandler(new InitialConnectSessionHandler(player));
+            mcConnection.setSessionHandler(new ClientTransitionSessionHandler(player));
             server.getEventManager().fire(new PostLoginEvent(player))
                 .thenCompose((ignored) -> connectToInitialServer(player))
                 .exceptionally((ex) -> {

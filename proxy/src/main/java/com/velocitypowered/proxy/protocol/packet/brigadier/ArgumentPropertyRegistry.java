@@ -43,6 +43,7 @@ import com.velocitypowered.proxy.protocol.packet.brigadier.forge.EnumArgumentPro
 import com.velocitypowered.proxy.protocol.packet.brigadier.forge.ModIdArgumentProperty;
 import io.netty.buffer.ByteBuf;
 import org.checkerframework.checker.nullness.qual.Nullable;
+import org.jetbrains.annotations.NotNull;
 
 import java.util.HashMap;
 import java.util.Map;
@@ -242,19 +243,19 @@ public class ArgumentPropertyRegistry {
     // Crossstitch support
     register(id("crossstitch:mod_argument", mapSet(MINECRAFT_1_19, -256)), ModArgumentProperty.class, MOD);
 
+    empty(id("minecraft:nbt")); // No longer in 1.19+
+
     // Forge support
     register(id("forge:enum", mapSet(MINECRAFT_1_19, -255)), EnumArgumentProperty.class, EnumArgumentPropertySerializer.ENUM);
     register(id("forge:modid", mapSet(MINECRAFT_1_19, -254)), ModIdArgumentProperty.class,
             new ArgumentPropertySerializer<>() {
               @Override
-              public @Nullable ModIdArgumentProperty deserialize(ByteBuf buf, ProtocolVersion protocolVersion) {
+              public ModIdArgumentProperty deserialize(ByteBuf buf, ProtocolVersion protocolVersion) {
                 return new ModIdArgumentProperty();
               }
 
               @Override
               public void serialize(ModIdArgumentProperty object, ByteBuf buf, ProtocolVersion protocolVersion) {}
             });
-
-    empty(id("minecraft:nbt")); // No longer in 1.19+
   }
 }
