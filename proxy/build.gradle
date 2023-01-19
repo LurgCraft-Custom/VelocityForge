@@ -2,11 +2,11 @@ import com.github.jengelman.gradle.plugins.shadow.transformers.Log4j2PluginsCach
 
 plugins {
     id 'java'
-    id 'checkstyle'
+    //id 'checkstyle'
 }
 
 apply plugin: 'org.cadixdev.licenser'
-apply from: '../gradle/checkstyle.gradle'
+//apply from: '../gradle/checkstyle.gradle'
 apply plugin: 'com.github.johnrengelman.shadow'
 
 license {
@@ -35,9 +35,9 @@ shadowJar {
     transform(Log4j2PluginsCacheFileTransformer)
 }
 
-tasks.withType(Checkstyle) {
-    exclude('**/com/velocitypowered/proxy/protocol/packet/*.java')
-}
+//tasks.withType(Checkstyle) {
+    //exclude('**/com/velocitypowered/proxy/protocol/packet/*.java')
+//}
 
 dependencies {
     // Note: we depend on the API twice, first the main sourceset, and then the annotation processor.

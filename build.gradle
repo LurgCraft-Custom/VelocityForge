@@ -20,14 +20,15 @@ allprojects {
         configurateVersion = '3.7.2'
 
         getCurrentShortRevision = {
-            new ByteArrayOutputStream().withStream { os ->
+            /*new ByteArrayOutputStream().withStream { os ->
                 exec {
                     executable = "git"
                     args = ["rev-parse", "HEAD"]
                     standardOutput = os
                 }
                 return os.toString().trim().substring(0, 8)
-            }
+            }*/
+            return 0
         }
     }
 
