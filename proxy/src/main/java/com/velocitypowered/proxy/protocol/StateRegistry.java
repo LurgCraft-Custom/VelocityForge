@@ -463,10 +463,17 @@ public enum StateRegistry {
       public int getPacketId(final MinecraftPacket packet) {
         final int id = this.packetClassToId.getInt(packet.getClass());
         if (id == Integer.MIN_VALUE) {
-          throw new IllegalArgumentException(String.format(
-              "Unable to find id for packet of type %s in %s protocol %s",
-              packet.getClass().getName(), PacketRegistry.this.direction, this.version
-          ));
+          if(!(packet instanceof LegacyChat) && !(packet instanceof PlayerListItem) && !(packet instanceof HeaderAndFooter)) {
+            throw new IllegalArgumentException(String.format(
+                "Unable to find id for packet of type %s in %s protocol %s",
+                packet.getClass().getName(), PacketRegistry.this.direction, this.version
+            ));
+          } else {
+            System.err.printf(
+                "Suppressed packet %s in %s protocol %s%n",
+                packet.getClass().getName(), PacketRegistry.this.direction, this.version
+            );
+          }
         }
         return id;
       }
