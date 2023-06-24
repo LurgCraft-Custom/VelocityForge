@@ -1,3 +1,5 @@
+# DEPRECATED
+
 # Velocity
 
 [![Build Status](https://img.shields.io/jenkins/s/https/ci.velocitypowered.com/job/velocity.svg)](https://ci.velocitypowered.com/job/velocity-3.0.0/)
